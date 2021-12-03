@@ -1,9 +1,9 @@
 package day1
 
-import kotlin.io.path.*
+import common.readLines
 
 fun main() {
-    val items = Path("src/day1/input.txt").readLines().map { it.toInt() }
+    val items = readLines("day1").map { it.toInt() }
 
     fun Iterable<Int>.countIncreases() = zipWithNext().count { (a, b) -> a < b }
     

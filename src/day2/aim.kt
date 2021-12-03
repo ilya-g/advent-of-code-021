@@ -1,14 +1,13 @@
 package day2
 
-import kotlin.io.path.Path
-import kotlin.io.path.readLines
+import common.readLines
 
 enum class Command {
     forward, down, up
 }
 
 fun main() {
-    val commands = Path("src/day2/input.txt").readLines()
+    val commands = readLines("day2")
         .map { it.split(' ').let { (a, b) -> Command.valueOf(a) to b.toInt() } }
 
     run part1@ {
