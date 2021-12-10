@@ -2,51 +2,47 @@ package day10
 
 import common.readLines
 
-data class SyntaxPair(val open: Char, val close: Char, val points: Int)
+data class SyntaxPair(val open: Char, val close: Char, val corruptedPoints: Int, val incompletePoints: Int)
 val pairs = listOf(
-    SyntaxPair('(', ')', 3),
-    SyntaxPair('[', ']', 57),
-    SyntaxPair('{', '}', 1197),
-    SyntaxPair('<', '>', 25137),
+    SyntaxPair('(', ')', 3, 1),
+    SyntaxPair('[', ']', 57, 2),
+    SyntaxPair('{', '}', 1197, 3),
+    SyntaxPair('<', '>', 25137, 4),
 )
+sealed interface SyntaxError
+object None : SyntaxError {
+    override fun toString() = "None"
+}
+class Corrupted(val invalidPair: SyntaxPair) : SyntaxError {
+    override fun toString() = "Illegal closing char ${invalidPair.close} worth ${invalidPair.corruptedPoints}"
+}
+class Incomplete(val remaining: List<SyntaxPair>) : SyntaxError {
+    val totalPoints = remaining.fold(0L) { acc, pair -> acc * 5 + pair.incompletePoints }
+    override fun toString() = "missing ${remaining.joinToString("") { it.close.toString() }} worth $totalPoints points"
+}
 
 fun main() {
     val input = readLines("day10")
 
-
-    fun String.corruptedPoints(): Int {
-        val stack = ArrayDeque<SyntaxPair>()
+    fun String.error(): SyntaxError {
+        val stack = mutableListOf<SyntaxPair>()
         for (c in this) {
-            val open = pairs.firstOrNull { it.open == c }
-            if (open != null) { stack.addLast(open) } else {
+            val open = pairs.singleOrNull { it.open == c }
+            if (open != null) { stack.add(open) } else {
                 val close = stack.removeLastOrNull()
                 if (close?.close != c) {
-                    println("illegal $c in $this")
-                    return pairs.single { it.close == c }.points
+                    return Corrupted(pairs.single { it.close == c })
                 }
             }
         }
-        return 0
+        return if (stack.isEmpty()) None else Incomplete(stack.asReversed())
     }
 
-    fun String.incompletePoints(): Long? {
-        val stack = ArrayDeque<SyntaxPair>()
-        for (c in this) {
-            val open = pairs.firstOrNull { it.open == c }
-            if (open != null) { stack.addLast(open) } else {
-                val close = stack.removeLastOrNull()
-                if (close?.close != c) {
-//                    println("illegal $c in $this")
-                    return null
-                }
-            }
-        }
-        return stack.toList().asReversed().fold(0L) { acc, pair -> acc * 5 + (1 + pairs.indexOf(pair)) }
-            .also {
-                println("line $this is completed with ${stack.toList().asReversed().joinToString("") { it.close.toString() }} worth $it points")
-            }
-    }
+    val inputErrors = input.map { line -> line.error().also {
+        println("line $line, problem: $it")
+    } }
 
-    println(input.sumOf { it.corruptedPoints() })
-    println(input.mapNotNull { it.incompletePoints() }.sorted().let { rank -> rank[rank.size / 2]})
+    println(inputErrors.filterIsInstance<Corrupted>().sumOf { it.invalidPair.corruptedPoints })
+    println(inputErrors.filterIsInstance<Incomplete>().map { it.totalPoints }
+        .sorted().let { rank -> rank[rank.size / 2]})
 }
