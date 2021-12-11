@@ -2,48 +2,50 @@ package day11
 
 import common.readLines
 
-fun main() {
-    val initial = readLines("day11").map { it.map { it.digitToInt() }}
-    initial.forEach(::println)
+class Octopus(private var energy: Int) {
+    fun gainEnergy() { energy++ }
+    fun gainEnergyFromNeighborFlash() { if (energy > 0) energy++ }
+    fun flashed() = (energy > 9).also { if (it) energy = 0 }
+    override fun toString() = "~($energy)~"
+}
 
-    val state = initial.map { it.toMutableList() }
+fun main() {
+    val input = readLines("day11").map { row -> row.map { Octopus(it.digitToInt()) }}
+    input.forEach(::println)
+    val rows = input.indices
+    val cols = input[0].indices
+    val neighbors = buildMap {
+        val dcs = (-1..1).flatMap { dr -> (-1..1).map { dc -> dr to dc }}.filterNot { (dr, dc) -> dr == 0 && dc == 0 }
+        for (r in rows) {
+            for (c in cols) {
+                put(input[r][c], dcs.mapNotNull { (dr, dc) -> input.getOrNull(r + dr)?.getOrNull(c + dc) })
+            }
+        }
+    }
+    val all = neighbors.keys
 
     var totalFlashes = 0
     fun simulateDay(): Int {
         var dayFlashes = 0
-        state.forEach { r ->
-            r.indices.forEach { c ->
-                r[c]++
-            }
-        }
+        all.forEach { it.gainEnergy() }
 
         do {
             val before = dayFlashes
-            state.indices.forEach { r ->
-                state[r].indices.forEach { c ->
-                    if (state[r][c] > 9) {
-                        state[r][c] = 0
-                        dayFlashes++
-                        for (dr in (-1..1)) {
-                            for (dc in (-1..1)) {
-                                if (dr == 0 && dc == 0) continue
-                                if (r + dr !in state.indices || c + dc !in state[r].indices) continue
-                                if (state[r + dr][c + dc] > 0)
-                                    state[r + dr][c + dc]++
-                            }
-                        }
-                    }
+            all.forEach {
+                if (it.flashed()) {
+                    dayFlashes++
+                    neighbors[it]!!.forEach { n -> n.gainEnergyFromNeighborFlash() }
                 }
             }
         } while (dayFlashes > before)
         return dayFlashes
     }
-    val total = state.size * state[0].size
+
     for (step in 1..1000) {
         val dayFlashes = simulateDay()
         totalFlashes += dayFlashes
         if (step == 100) println("Flashes after 100 steps: $totalFlashes")
-        if (dayFlashes == total) {
+        if (dayFlashes == all.size) {
             println("All flashed at $step")
             if (step > 100) break
         }
