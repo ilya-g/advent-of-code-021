@@ -1,6 +1,7 @@
 package day9
 
 import common.positionXY.Pos
+import common.positionXY.adjacentHV
 import common.readLines
 
 fun main() {
@@ -12,12 +13,7 @@ fun main() {
 
     fun at(p: Pos): Int = input[p.y][p.x]
 
-    fun Pos.adjacent(): List<Pos> = listOf(
-        Pos(x - 1, y),
-        Pos(x + 1, y),
-        Pos(x, y - 1),
-        Pos(x, y + 1),
-    ).filter { it.x in xs && it.y in ys }
+    fun Pos.adjacent(): List<Pos> = adjacentHV().filter { it.x in xs && it.y in ys }
 
     positions.sumOf { p ->
         val c = at(p)
