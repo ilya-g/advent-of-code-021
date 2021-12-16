@@ -3,6 +3,7 @@ package day15
 import common.positionXY.Pos
 import common.positionXY.adjacentHV
 import common.readLines
+import kotlin.time.measureTimedValue
 
 operator fun <T> List<List<T>>.get(pos: Pos) = this[pos.y][pos.x]
 operator fun <T> List<MutableList<T>>.set(pos: Pos, value: T) { this[pos.y][pos.x] = value }
@@ -27,29 +28,24 @@ fun main() {
         fun Pos.adjacent(): List<Pos> = adjacentHV().filter { it.x in xs && it.y in ys }
 
         val total = ys.map { xs.mapTo(mutableListOf()) { 0 }}
+        val defer = mutableSetOf<Pos>()
         for (y in ys) {
             for (x in xs) {
                 val pos = Pos(x, y)
-                val min = pos.adjacent().map { total[it] }.filter { it > 0 }.minOrNull() ?: 0
-                total[pos] = min + at(pos)
+                val adjacent = pos.adjacent()
+                val v = at(pos) + (adjacent.map { total[it] }.filter { it > 0 }.minOrNull() ?: 0)
+                total[pos] = v
+                adjacent.filterTo(defer) { total[it] > at(it) + v }
             }
         }
 
-        do {
-            var changed = false
-            for (y in ys) {
-                for (x in xs) {
-                    val pos = Pos(x, y)
-                    val v = total[pos] - at(pos)
-                    val min = pos.adjacent().map { total[it] }.filter { it < v }.minOrNull()
-                    if (min != null) {
-                        total[pos] = min + at(pos)
-                        changed = true
-                    }
-                }
-            }
-        } while (changed)
-
+        while (defer.isNotEmpty()) {
+            val pos = defer.first().also { defer.remove(it) }
+            val adjacent = pos.adjacent()
+            val v = at(pos) + adjacent.minOf { total[it] }
+            total[pos] = v
+            adjacent.filterTo(defer) { total[it] > at(it) + v }
+        }
 
         if (printTotals) {
             for (y in ys) {
@@ -86,8 +82,11 @@ fun main() {
         return result
     }
 
-    val result1 = solve(1, drawPath = true)
-    val result5 = solve(5)
+    val result1 = solve(1, drawPath = true, printTotals = true)
+    val result5 = measureTimedValue {  solve(5) }.let {
+        println(it.duration)
+        it.value
+    }
 
     println("Part 1: $result1")
     println("Part 2: $result5")
