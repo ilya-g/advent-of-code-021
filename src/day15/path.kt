@@ -35,16 +35,19 @@ fun main() {
                 val adjacent = pos.adjacent()
                 val v = at(pos) + (adjacent.map { total[it] }.filter { it > 0 }.minOrNull() ?: 0)
                 total[pos] = v
-                adjacent.filterTo(defer) { total[it] > at(it) + v }
+                if (adjacent.any { total[it] > at(it) + v }) defer.add(pos)
             }
         }
 
         while (defer.isNotEmpty()) {
             val pos = defer.first().also { defer.remove(it) }
-            val adjacent = pos.adjacent()
-            val v = at(pos) + adjacent.minOf { total[it] }
-            total[pos] = v
-            adjacent.filterTo(defer) { total[it] > at(it) + v }
+            val v = total[pos]
+            pos.adjacent().forEach {
+                if (total[it] > at(it) + v) {
+                    total[it] = at(it) + v
+                    defer.add(it)
+                }
+            }
         }
 
         if (printTotals) {
