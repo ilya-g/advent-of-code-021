@@ -37,11 +37,11 @@ fun PN.explode(depth: Int): Triple<PN, Int, Int>? = when (this) {
     }
 }
 
-fun PN.appendRight(value: Int): PN = when(this) {
+fun PN.appendRight(value: Int): PN = if (value == 0) this else when(this) {
     is N -> N(this.value + value)
     is P -> P(first, second.appendRight(value))
 }
-fun PN.appendLeft(value: Int): PN = when(this) {
+fun PN.appendLeft(value: Int): PN = if (value == 0) this else when(this) {
     is N -> N(this.value + value)
     is P -> P(first.appendLeft(value), second)
 }
