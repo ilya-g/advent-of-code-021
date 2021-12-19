@@ -1,6 +1,7 @@
 package day18
 
 import common.readLines
+import kotlin.time.measureTime
 
 sealed interface PN
 data class P(val first: PN, val second: PN) : PN {
@@ -106,14 +107,17 @@ fun main() {
 
     input.runningReduce { acc, pn -> acc + pn }
 //        .onEach(::println)
-        .last().magnitude().let(::println)
+        .last().also(::println)
+        .magnitude().let(::println)
 
-    val sums = sequence {
-        for (p1 in input) {
-            for (p2 in input) {
-                if (p1 !== p2) yield(p1 + p2)
+    measureTime {
+        val sums = sequence {
+            for (p1 in input) {
+                for (p2 in input) {
+                    if (p1 !== p2) yield(p1 + p2)
+                }
             }
         }
-    }
-    println(sums.maxOf { it.magnitude() })
+        println(sums.maxOf { it.magnitude() })
+    }.let(::println)
 }
