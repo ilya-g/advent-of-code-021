@@ -3,6 +3,7 @@ package day19
 import common.permutations
 import common.readAll
 import kotlin.math.absoluteValue
+import kotlin.time.measureTime
 
 data class Pos3D(val x: Int, val y: Int, val z: Int) {
     override fun toString(): String = "$x,$y,$z"
@@ -43,15 +44,21 @@ val rotations = buildList {
         0, 1, 0,
         0, 0, 1,
     ).chunked(3)
-    // TODO: find how to exclude mirroring matrices
+
     val signs = (0..7).map { List(3) { n -> if (it and (1 shl n) != 0) -1 else 1 } }
     for (rows in unitRows.permutations()) {
         for (s in signs) {
             add(RotationMatrix(rows.zip(s) { r, rs -> scalarProduct(r, rs) }))
         }
     }
+}.filter { it.det() == 1 }
+
+fun RotationMatrix.det() = (0..2).sumOf { c0 ->
+    fun det(a: Int, b: Int, c: Int, d: Int) = a * d - c * b
+    val c1 = (c0 + 1) % 3
+    val c2 = (c0 + 2) % 3
+    c[0][c0] * det(c[1][c1], c[1][c2], c[2][c1], c[2][c2])
 }
-//fun RotationMatrix.isMirror() = c.map { it.sum() }.count { it < 0 } % 2 == 1
 
 
 fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatrix, Pos3D>? = sequence {
@@ -74,7 +81,7 @@ fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatri
 }.firstOrNull()
 
 
-fun main() {
+fun main() = measureTime {
     val scans = readAll("day19").split("\n\n", "\r\n\r\n")
         .map { s -> listOf(Pos3D(0,0,0)) to
             s.lines().drop(1).map {
@@ -111,7 +118,7 @@ fun main() {
 
 
 //    println(rotations.size)
-//    rotations.forEach { println("${it.isMirror()}\n$it\n") }
+//    rotations.forEach { println("$it\n") }
 
 //    val points = listOf(
 //        Pos3D(5,6,-4),
@@ -125,4 +132,4 @@ fun main() {
 //        }
 //        println()
 //    }
-}
+}.let { println(it) }
