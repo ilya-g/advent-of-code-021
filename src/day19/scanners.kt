@@ -62,8 +62,8 @@ fun RotationMatrix.det() = (0..2).sumOf { c0 ->
 
 
 fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatrix, Pos3D>? {
-    val ds0 = s0.map { p0 -> s0.map { it - p0 }.let { ds -> Triple(p0, ds, ds.map { it.distance() }.toSet()) } }
-    val ds1 = s1.map { p1 -> s1.map { it - p1 }.let { ds -> Triple(p1, ds, ds.map { it.distance() }.toSet()) } }
+    val ds0 = s0.sortedByDescending { it.distance() }.map { p0 -> s0.map { it - p0 }.let { ds -> Triple(p0, ds, ds.map { it.distance() }.toSet()) } }
+    val ds1 = s1.sortedByDescending { it.distance() }.map { p1 -> s1.map { it - p1 }.let { ds -> Triple(p1, ds, ds.map { it.distance() }.toSet()) } }
     for ((p0, dps0, dist0) in ds0) {
         for ((p1, dps1, dist1) in ds1) {
             val commonDistances = dist0 intersect dist1
