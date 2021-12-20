@@ -61,24 +61,25 @@ fun RotationMatrix.det() = (0..2).sumOf { c0 ->
 }
 
 
-fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatrix, Pos3D>? = sequence {
-    val ds0 = s0.map { p0 -> p0 to s0.map { it - p0 } }
-    val ds1 = s1.map { p1 -> p1 to s1.map { it - p1 } }
-    for (r in rotations) {
-        val ds1r = ds1.map { (p, dps) -> p to dps.map { r * it }.toSet() }
-        for ((p0, dps0) in ds0) {
-            for ((p1, dps1r) in ds1r) {
+fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatrix, Pos3D>? {
+    val ds0 = s0.map { p0 -> s0.map { it - p0 }.let { ds -> Triple(p0, ds, ds.map { it.distance() }.toSet()) } }
+    val ds1 = s1.map { p1 -> s1.map { it - p1 }.let { ds -> Triple(p1, ds, ds.map { it.distance() }.toSet()) } }
+    for ((p0, dps0, dist0) in ds0) {
+        for ((p1, dps1, dist1) in ds1) {
+            val commonDistances = dist0 intersect dist1
+            if (commonDistances.size < 12) continue
+            for (r in rotations) {
+                val dps1r = dps1.map { r * it }.toSet()
                 val common = dps0 intersect dps1r
                 if (common.size >= 12) {
-//                        both.forEach { println(p0 + it) }
-                    val p00 = p0 + common.first()
-                    val p10 = r * p1 + common.first()
-                    yield(r to (p00 - p10))
+//                    common.forEach { println((p0 + it).distance()) }
+                    return r to (p0 - r * p1)
                 }
             }
         }
     }
-}.firstOrNull()
+    return null
+}
 
 
 fun main() = measureTime {
