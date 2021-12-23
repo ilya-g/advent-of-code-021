@@ -60,6 +60,14 @@ fun RotationMatrix.det() = (0..2).sumOf { c0 ->
     c[0][c0] * det(c[1][c1], c[1][c2], c[2][c1], c[2][c2])
 }
 
+fun distanceSet(s: Collection<Pos3D>): Set<Int> = buildSet {
+    for ((i1, s1) in s.withIndex()) {
+        for ((i2, s2) in s.withIndex()) {
+            if (i1 != i2)
+                add((s2 - s1).distance())
+        }
+    }
+}
 
 fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatrix, Pos3D>? {
     val ds0 = s0.sortedByDescending { it.distance() }.map { p0 -> s0.map { it - p0 }.let { ds -> Triple(p0, ds, ds.map { it.distance() }.toSet()) } }
@@ -81,39 +89,42 @@ fun findOrientationAndOrigin(s0: Set<Pos3D>, s1: Set<Pos3D>): Pair<RotationMatri
     return null
 }
 
+data class Region(val scanners: List<Pos3D>, val beacons: Set<Pos3D>, val distances: Set<Int> = distanceSet(beacons), val oriented: Boolean = false)
 
 fun main() = measureTime {
-    val scans = readAll("day19").split("\n\n", "\r\n\r\n")
-        .map { s -> listOf(Pos3D(0,0,0)) to
+    val regions = readAll("day19").split("\n\n", "\r\n\r\n")
+        .map { s -> Region(listOf(Pos3D(0,0,0)),
             s.lines().drop(1).map {
                 it.split(",").map(String::toInt).let { (x, y, z) -> Pos3D(x, y, z) }
-            }.toSet()
+            }.toSet())
         }.toMutableList()
 
 
-
-    outer@ while (scans.size > 1) {
-        println(scans.map { it.second.size })
-        for (i0 in scans.indices) {
-            val s0 = scans[i0].second
-            for (i1 in i0 + 1 until scans.size) {
-                val s1 = scans[i1].second
+    outer@ while (regions.size > 1) {
+        println(regions.map { it.beacons.size })
+        for ((i0, reg0) in regions.withIndex()) {
+            for (i1 in i0 + 1 until regions.size) {
                 if (i0 == i1) continue
-                val (r, o1) = findOrientationAndOrigin(s0, s1) ?: continue
-                val union = s0 union s1.map { p -> r * p + o1 }
-                val scanPos = scans[i0].first + scans[i1].first.map { p -> r * p + o1 }
-                scans.removeAt(i1)
-                scans.removeAt(i0)
-                scans.add(scanPos to union)
+                val reg1 = regions[i1]
+                if ((reg0.distances intersect reg1.distances).size < 66) continue
+                val (r, o1) = findOrientationAndOrigin(reg0.beacons, reg1.beacons) ?: continue
+                val combined = Region(
+                    beacons = reg0.beacons union reg1.beacons.map { p -> r * p + o1 },
+                    scanners = reg0.scanners + reg1.scanners.map { p -> r * p + o1 },
+                    distances = reg0.distances union reg1.distances
+                )
+                regions.removeAt(i1)
+                regions.removeAt(i0)
+                regions.add(combined)
                 continue@outer
             }
         }
     }
 
-    val (scanners, points) = scans.single()
+    val (scanners, beacons) = regions.single()
     println("Scanner locations: $scanners")
 
-    println("Total beacons: ${points.size}")
+    println("Total beacons: ${beacons.size}")
     val maxDistance = scanners.flatMap { s1 -> scanners.map { s2 -> s2 - s1 } }.maxOf { it.distance() }
     println("Max scanner distance: $maxDistance")
 
