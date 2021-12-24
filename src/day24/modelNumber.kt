@@ -61,41 +61,53 @@ fun analyzeNullifyingPairs(program: List<Instr>) = buildList {
         }
     }
     check(posStack.isEmpty())
-}.sortedBy { it.second }
+}
+
+fun <T, K : Comparable<K>> List<T>.allMinsBy(selector: (T) -> K): List<T> {
+    val min = minOf(selector)
+    return filter { selector(it) == min }
+}
 
 
 fun main() {
     val program = readLines("day24").map(::parseInstr) //.onEach(::println)
 
     // 94815972183576 - one carefully found valid model number
-    val r = execute("96819994293996", program)
+    val r = execute("94815972183576", program)
     check(r == 0L)
 
-    val pairs = analyzeNullifyingPairs(program)
+    val pairs = analyzeNullifyingPairs(program).also(::println)
 
-    val base = "94815972183576"
-    fun solutions(base: String, p1: Int, p2: Int) = sequence {
+    fun results(base: String, pair: Pair<Int, Int>) = sequence {
         val s = StringBuilder(base)
+        val (p1, p2) = pair
         for (v1 in 1..9) for (v2 in 1..9) {
             s[p1] = v1.digitToChar()
             s[p2] = v2.digitToChar()
-            val result = execute(s, program, verbose = false)
-            if (result == 0L)
-                yield(s.toString() to result)
+            yield(s.toString() to execute(s, program, verbose = false))
         }
     }
+    fun varySolutions(base: String, pair: Pair<Int, Int>) =
+        results(base, pair).filter { it.second == 0L }
 
+    val start = "1".repeat(14)
 
+    val solutions = pairs.fold(listOf(start to 0L)) { stage, pair ->
+        stage.flatMap { results(it.first, pair) }.allMinsBy { it.second } //.also { println(it) }
+    }.map { it.first }
+
+    println(solutions.maxOrNull()!!)
+    println(solutions.minOrNull()!!)
+
+    val base = solutions.random()
     println("Finding maximum")
-    pairs.fold(base) { stage, (p1, p2), ->
-        solutions(stage, p1, p2).maxOf { it.first }.also(::println)
+    pairs.fold(base) { stage, pair, ->
+        varySolutions(stage, pair).maxOf { it.first }.also(::println)
     }
 
     println("Finding minimum")
-    pairs.fold(base) { stage, (p1, p2), ->
-        solutions(stage, p1, p2).minOf { it.first }.also(::println)
+    pairs.fold(base) { stage, pair, ->
+        varySolutions(stage, pair).minOf { it.first }.also(::println)
     }
-
-
 }
 
